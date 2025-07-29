@@ -1,5 +1,5 @@
 # snake-arduino-IC
-![GIF do Jogo Snake em Ação](https://tenor.com/Y1ob.gif)
+![GIF do Jogo Snake em Ação](https://upload.wikimedia.org/wikipedia/commons/5/55/Snake_can_be_completed.gif)
 > Um console de jogo dedicado, construído com Arduino, para uma versão do clássico jogo Snake em um display de matriz de LED 32x8.
 
 Este projeto foi desenvolvido por um grupo de estudantes do primeiro período de Engenharia da Computação como requisito para a Feira de Ciências da disciplina de Introdução à Computação.
@@ -10,7 +10,7 @@ Este projeto foi desenvolvido por um grupo de estudantes do primeiro período de
 
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Componentes Necessários](#componentes-necessários-hardware)
-- [Diagrama da Montagem e Foto do Circuito Montado](#diagrama-da-montagem-e-foto-do-circuito-montado)
+- [Diagrama da Montagem](#diagrama-da-montagem)
 - [Instalação do Software](#instalação-do-software)
 - [Como Jogar](#como-jogar)
 - [Equipe](#equipe)
@@ -24,7 +24,9 @@ O objetivo principal foi aplicar de forma prática os conhecimentos de hardware 
 
 O console utiliza um Arduino Mega como cérebro, um display de matriz de LED 32x8 como tela, e um joystick analógico para a entrada do jogador.
 
-![Foto do Console Montado](https://i.imgur.com/link_para_foto_do_seu_projeto.jpg)
+
+![Colocar circuito montado aqui!!!!!!!!!!]()
+> _Foto do Circuito montado._
 
 ---
 
@@ -44,25 +46,14 @@ O console utiliza um Arduino Mega como cérebro, um display de matriz de LED 32x
 
 ---
 
-## Diagrama da Montagem e Foto do Circuito Montado
+## Diagrama da Montagem
 
 A montagem do circuito foi desenhada utilizando o software Fritzing para garantir clareza e facilitar a replicação do projeto. A alimentação das matrizes de LED é feita pela fonte externa de 5V, enquanto o Arduino é alimentado via USB, com os terras (GND) de ambos os circuitos conectados para garantir uma referência comum.
 
 
-COLOCAR DIAGRAMA AQUI!!!!!!!!!!!!!!!!!!
-
-![Diagrama Fritzing do Circuito](https://i.imgur.com/link_para_seu_diagrama.png)
+![Colocar diagrama do circuito aqui!!!!!!!!]()
 
 > _Esquemático do Circuito._
-
-COLOCAR FOTO DO CIRCUITO AQUI!!!!
-
-[![Foto do Circuito Montado](https://i.imgur.com/link_para_foto_do_seu_circuito_montado.jpg)](https://i.imgur.com/link_para_foto_do_seu_circuito_montado.jpg)
-
-> _Foto do Circuito montado._
-
-Nesta foto, é possível visualizar a disposição dos componentes na protoboard e as interconexões realizadas com os jumpers. A alimentação das matrizes de LED é feita pela fonte externa de 5V, com a atenção necessária à conexão do terra (GND) em comum com o Arduino (que é alimentado via USB para programação e testes).
-
 
 ---
 
@@ -72,15 +63,16 @@ Para rodar o jogo no seu próprio Arduino, siga os passos abaixo:
 
 1.  **Clone o Repositório**
     ```sh
-    git clone [https://github.com/rafaelvlt/snake-arduino-IC.git](https://github.com/rafaelvlt/snake-arduino-IC.git)
+    git clone https://github.com/rafaelvlt/snake-arduino-IC.git
     ```
+
 2.  **Abra na IDE do Arduino**
     Abra o arquivo `.ino` principal do projeto na sua IDE do Arduino.
 
 3.  **Instale as Bibliotecas Necessárias**
     Este projeto requer bibliotecas externas. Instale-as através do Gerenciador de Bibliotecas da IDE (`Ferramentas > Gerenciar Bibliotecas...`):
-    -   `Biblioteca1`
-    -   `Biblioteca2`
+    -   `MD_Parola`
+    -   `MD_MAX72xx`
 
 4.  **Faça o Upload**
     Conecte sua placa Arduino Mega, selecione a porta correta em `Ferramentas > Porta` e clique no botão de Upload.
@@ -101,13 +93,8 @@ Para rodar o jogo no seu próprio Arduino, siga os passos abaixo:
 
 Este projeto foi idealizado e construído por:
 
--   **[Rafael Barbosa <rabs4>]** - [https://github.com/rafaelvlt]
--   **[Nome do Integrante ]** - [Link do GitHub ou LinkedIn]
--   **[Nome do Integrante 3]** - [Link do GitHub ou LinkedIn]
--   **[Nome do Integrante 4]** - [Link do GitHub ou LinkedIn]
--   **[Nome do Integrante 5]** - [Link do GitHub ou LinkedIn]
--   **[Nome do Integrante 6]** - [Link do GitHub ou LinkedIn]
-
+-   [Rafael Barbosa](https://github.com/rafaelvlt)
+-   [Nome do Integrante](Link do GitHub ou LinkedIn)
 ---
 
 ## Licença
