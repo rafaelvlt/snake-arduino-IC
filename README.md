@@ -1,5 +1,5 @@
 # snake-arduino-IC
-![GIF do Jogo Snake em Ação]()
+![GIF do Jogo Snake em Ação](https://tenor.com/Y1ob.gif)
 > Um console de jogo dedicado, construído com Arduino, para uma versão do clássico jogo Snake em um display de matriz de LED 32x8.
 
 Este projeto foi desenvolvido por um grupo de estudantes do primeiro período de Engenharia da Computação como requisito para a Feira de Ciências da disciplina de Introdução à Computação.
@@ -56,6 +56,7 @@ COLOCAR DIAGRAMA AQUI!!!!!!!!!!!!!!!!!!
 > _Esquemático do Circuito._
 
 COLOCAR FOTO DO CIRCUITO AQUI!!!!
+
 [![Foto do Circuito Montado](https://i.imgur.com/link_para_foto_do_seu_circuito_montado.jpg)](https://i.imgur.com/link_para_foto_do_seu_circuito_montado.jpg)
 
 > _Foto do Circuito montado._
