@@ -95,6 +95,7 @@ Este projeto foi idealizado e construído por:
 
 -   [Rafael Barbosa](https://github.com/rafaelvlt)
 -   [Caio Amarante](https://github.com/IrineuACgasoso)
+-   [Eric Santiago] ()
 ---
 
 ## Licença
