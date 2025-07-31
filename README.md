@@ -94,7 +94,7 @@ Para rodar o jogo no seu próprio Arduino, siga os passos abaixo:
 Este projeto foi idealizado e construído por:
 
 -   [Rafael Barbosa](https://github.com/rafaelvlt)
--   [Nome do Integrante](Link do GitHub ou LinkedIn)
+-   [Caio Amarante](https://github.com/IrineuACgasoso)
 ---
 
 ## Licença
