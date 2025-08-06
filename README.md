@@ -10,7 +10,7 @@ Este projeto foi desenvolvido por um grupo de estudantes do primeiro período de
 
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Componentes Necessários](#componentes-necessários-hardware)
-- [Diagrama da Montagem](#diagrama-da-montagem)
+- [Montagem e Conexões](#montagem-e-conexoes)
 - [Instalação do Software](#instalação-do-software)
 - [Como Jogar](#como-jogar)
 - [Equipe](#equipe)
@@ -45,8 +45,8 @@ O console utiliza um Arduino Mega como cérebro, um display de matriz de LED 32x
 | 2 | Protoboard (Placa de Ensaio) 830 pontos |
 
 ---
-
-## Diagrama da Montagem
+## Montagem e Conexões
+### Diagrama da Montagem
 
 A montagem do circuito foi desenhada utilizando o software Fritzing para garantir clareza e facilitar a replicação do projeto. A alimentação das matrizes de LED é feita pela fonte externa de 5V, enquanto o Arduino é alimentado via USB, com os terras (GND) de ambos os circuitos conectados para garantir uma referência comum.
 
@@ -55,6 +55,15 @@ A montagem do circuito foi desenhada utilizando o software Fritzing para garanti
 
 > _Esquemático do Circuito._
 
+### Tabela de Conexões (Pinout)
+
+| Componente | Pino do Componente | Pino do Arduino |
+| :--- | :--- | :--- |
+| **Matriz de LED** | DIN (Data In) | 51 |
+| | CLK (Clock) | 52 |
+| | CS (Load) | 53 |
+| **Joystick** | VRx | A0 |
+| | VRy | A1 |
 ---
 
 ## Instalação do Software
@@ -71,8 +80,8 @@ Para rodar o jogo no seu próprio Arduino, siga os passos abaixo:
 
 3.  **Instale as Bibliotecas Necessárias**
     Este projeto requer bibliotecas externas. Instale-as através do Gerenciador de Bibliotecas da IDE (`Ferramentas > Gerenciar Bibliotecas...`):
-    -   `MD_Parola`
-    -   `MD_MAX72xx`
+    -   `LedControl`
+    -   `LiquidCrystal I2C`
 
 4.  **Faça o Upload**
     Conecte sua placa Arduino Mega, selecione a porta correta em `Ferramentas > Porta` e clique no botão de Upload.
