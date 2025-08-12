@@ -105,6 +105,8 @@ Este projeto foi idealizado e construído por:
 -   [Rafael Barbosa](https://github.com/rafaelvlt)
 -   [Caio Amarante](https://github.com/IrineuACgasoso)
 -   [Eric Santiago](https://github.com/ARISE21)
+-   [Nina Schettini](https://github.com/schettinina)
+-   [Heitor Luiz](https://github.com/heitorlui-z)
 ---
 
 ## Licença
