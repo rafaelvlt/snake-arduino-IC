@@ -1,6 +1,7 @@
 #include <LedControl.h>
+#include <LiquidCrystal_I2C.h>
 
-//Matriz de Led
+// === MATRIZ DE LED ===
 #define MLED_DIN 51
 #define MLED_CLK 52
 #define MLED_CS  53
@@ -9,165 +10,306 @@ LedControl matriz = LedControl(MLED_DIN, MLED_CLK, MLED_CS, 4); // 4 módulos 8x
 #define MATRIZ_ALTURA 8
 #define TAMANHO_MAXIMO 256
 
-//joystick
-#define JOY_X A0
-#define JOY_Y A1
+// === LCD ===
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Endereço comum 0x27
+
+// === BUZZER ===
+#define BUZZER 9
+
+// === JOYSTICKS ===
+#define JOY1_X A0
+#define JOY1_Y A1
+#define JOY2_X A3
+#define JOY2_Y A4
 #define LIMITE_JOYSTICK_BAIXO 400
 #define LIMITE_JOYSTICK_ALTO  600
 
-//variáveis
-//A matriz ser até o tamanho máximo garante que sempre haverá espaço pra cobrar expandir
-int snakeX[TAMANHO_MAXIMO]; 
+// === COBRA 1 ===
+int snakeX[TAMANHO_MAXIMO];
 int snakeY[TAMANHO_MAXIMO];
-int snake_comprimento_inicial = 3; //inicia com 3 de comprimento
+int snake_comprimento_inicial = 3;
 int snake_comprimento = snake_comprimento_inicial;
-//controle
-int direcao_X = 1;
+int direcao_X = 1;  // Direita
 int direcao_Y = 0;
 
-//coordenadas da fruta
+// === COBRA 2 ===
+int snake2X[TAMANHO_MAXIMO];
+int snake2Y[TAMANHO_MAXIMO];
+int snake2_comprimento_inicial = 3;
+int snake2_comprimento = snake2_comprimento_inicial;
+int direcao2_X = -1; // Esquerda
+int direcao2_Y = 0;
+
+// === FRUTA ===
 int frutaX, frutaY;
 
-//checagem de tempo
+// === TEMPO ===
 unsigned long ultimoMovimento = 0;
 int movimentoDelay = 150;
 
+// === PONTUAÇÃO ===
+int pontosP1 = 0;
+int pontosP2 = 0;
+
 void setup() {
-  //inicializa os 4 módulos da matriz de led
+  pinMode(BUZZER, OUTPUT);
+
+  // Inicializa matriz
   for (int i = 0; i < 4; i++) {
-    matriz.shutdown(i, false); //módulo sem economia de energia
-    matriz.setIntensity(i, 8); //brilho
-    matriz.clearDisplay(i); //limpa display
+    matriz.shutdown(i, false);
+    matriz.setIntensity(i, 8);
+    matriz.clearDisplay(i);
   }
-  //inicia um gerador de números aleatórios que depende de ruídos de um pino
+
+  // Inicializa LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("P1:0   P2:0");
+
   randomSeed(analogRead(A2));
 
-  //posicão inicial da cobra
+  // Posiciona Cobra 1
   for (int i = 0; i < snake_comprimento; i++) {
     snakeX[i] = 4 - i;
     snakeY[i] = 3;
   }
-  //gera primeira comida na tela
+
+  // Posiciona Cobra 2 (oposta)
+  for (int i = 0; i < snake2_comprimento; i++) {
+    snake2X[i] = MATRIZ_LARGURA - 5 + i;
+    snake2Y[i] = 4;
+  }
+
   gerar_fruta();
 }
+
 void loop() {
-  //sempre escuta por inputs
-  ler_joystick();
-  //se tiver passado o tempo até se movimentar, chama funções necessárias para isso
+  ler_joystick1();
+  ler_joystick2();
+
   if (millis() - ultimoMovimento > movimentoDelay) {
     ultimoMovimento = millis();
-    movimento_snake();
+
+    movimento_snake1();
+    movimento_snake2();
+
     desenhar_matriz();
+
+    // Atualiza pontuação no LCD
+    lcd.setCursor(0,0);
+    lcd.print("P1:");
+    lcd.print(pontosP1);
+    lcd.setCursor(8,0);
+    lcd.print("P2:");
+    lcd.print(pontosP2);
   }
 }
-void ler_joystick() {
-  //leitura do joystick
-  int x = analogRead(JOY_X);
-  int y = analogRead(JOY_Y);
-  //seta as direções, não consegue mover para a direita se estiver indo pra esquerda inicialmente, etc
-  //Esquerda
+
+// === LEITURA JOYSTICK P1 ===
+void ler_joystick1() {
+  int x = analogRead(JOY1_X);
+  int y = analogRead(JOY1_Y);
+
+  if (abs(x - 512) < 80 && abs(y - 512) < 80) return;
+
   if (x < LIMITE_JOYSTICK_BAIXO && direcao_X != 1) { 
     direcao_X = -1; direcao_Y = 0; 
-  }
-  //Direita
-  else if (x > LIMITE_JOYSTICK_ALTO && direcao_X != -1) { 
+  } else if (x > LIMITE_JOYSTICK_ALTO && direcao_X != -1) { 
     direcao_X = 1; direcao_Y = 0; 
-  }
-  //Cima
-  else if (y < LIMITE_JOYSTICK_BAIXO && direcao_Y != -1) {
+  } else if (y < LIMITE_JOYSTICK_BAIXO && direcao_Y != -1) {
     direcao_X = 0; direcao_Y = 1; 
-  }
-  //Baixo
-  else if (y > LIMITE_JOYSTICK_ALTO && direcao_Y != 1) {
+  } else if (y > LIMITE_JOYSTICK_ALTO && direcao_Y != 1) {
     direcao_X = 0; direcao_Y = -1;
-    }
+  }
 }
-void movimento_snake() {
-  int novo_X = snakeX[0] + direcao_X; //nova coordenada do X cabeça
-  int novo_Y = snakeY[0] + direcao_Y; //nova coordenada do Y cabeça
 
-  // atravessa a parede, em dúvida se será mantido ou terá game-over
+// === LEITURA JOYSTICK P2 ===
+void ler_joystick2() {
+  int x = analogRead(JOY2_X);
+  int y = analogRead(JOY2_Y);
+
+  if (abs(x - 512) < 80 && abs(y - 512) < 80) return;
+
+  if (x < LIMITE_JOYSTICK_BAIXO && direcao2_X != 1) { 
+    direcao2_X = -1; direcao2_Y = 0; 
+  } else if (x > LIMITE_JOYSTICK_ALTO && direcao2_X != -1) { 
+    direcao2_X = 1; direcao2_Y = 0; 
+  } else if (y < LIMITE_JOYSTICK_BAIXO && direcao2_Y != -1) {
+    direcao2_X = 0; direcao2_Y = 1; 
+  } else if (y > LIMITE_JOYSTICK_ALTO && direcao2_Y != 1) {
+    direcao2_X = 0; direcao2_Y = -1;
+  }
+}
+
+// === MOVIMENTO COBRA 1 ===
+void movimento_snake1() {
+  int novo_X = snakeX[0] + direcao_X;
+  int novo_Y = snakeY[0] + direcao_Y;
+
   if (novo_X < 0) novo_X = MATRIZ_LARGURA - 1;
-
   else if (novo_X >= MATRIZ_LARGURA) novo_X = 0;
-
   if (novo_Y < 0) novo_Y = MATRIZ_ALTURA - 1;
-
   else if (novo_Y >= MATRIZ_ALTURA) novo_Y = 0;
 
-  // colidiu com o corpo
   for (int i = 0; i < snake_comprimento; i++) {
-    //se a proxima coordenada da cobra é igual o corpo, chama game_over e retorna a função para não ter movimento
     if (snakeX[i] == novo_X && snakeY[i] == novo_Y) {
-      game_over();
+      game_over(1);
       return;
     }
   }
-  //movimentação do corpo da cobra, o segmento do indice posterior assume o do indice anterior
+  for (int i = 0; i < snake2_comprimento; i++) {
+    if (snake2X[i] == novo_X && snake2Y[i] == novo_Y) {
+      game_over(1);
+      return;
+    }
+  }
+
   for (int i = snake_comprimento; i > 0; i--) {
     snakeX[i] = snakeX[i - 1];
     snakeY[i] = snakeY[i - 1];
   }
-  //movimenta a cabeça
   snakeX[0] = novo_X;
   snakeY[0] = novo_Y;
 
-  // comeu
   if (novo_X == frutaX && novo_Y == frutaY) {
+    tone(BUZZER, 1000, 100);
+    pontosP1++;
     if (snake_comprimento < TAMANHO_MAXIMO) snake_comprimento++;
     gerar_fruta();
   }
 }
+
+// === MOVIMENTO COBRA 2 ===
+void movimento_snake2() {
+  int novo_X = snake2X[0] + direcao2_X;
+  int novo_Y = snake2Y[0] + direcao2_Y;
+
+  if (novo_X < 0) novo_X = MATRIZ_LARGURA - 1;
+  else if (novo_X >= MATRIZ_LARGURA) novo_X = 0;
+  if (novo_Y < 0) novo_Y = MATRIZ_ALTURA - 1;
+  else if (novo_Y >= MATRIZ_ALTURA) novo_Y = 0;
+
+  for (int i = 0; i < snake2_comprimento; i++) {
+    if (snake2X[i] == novo_X && snake2Y[i] == novo_Y) {
+      game_over(2);
+      return;
+    }
+  }
+  for (int i = 0; i < snake_comprimento; i++) {
+    if (snakeX[i] == novo_X && snakeY[i] == novo_Y) {
+      game_over(2);
+      return;
+    }
+  }
+
+  for (int i = snake2_comprimento; i > 0; i--) {
+    snake2X[i] = snake2X[i - 1];
+    snake2Y[i] = snake2Y[i - 1];
+  }
+  snake2X[0] = novo_X;
+  snake2Y[0] = novo_Y;
+
+  if (novo_X == frutaX && novo_Y == frutaY) {
+    tone(BUZZER, 1200, 100);
+    pontosP2++;
+    if (snake2_comprimento < TAMANHO_MAXIMO) snake2_comprimento++;
+    gerar_fruta();
+  }
+}
+
+// === FRUTA ===
 void gerar_fruta() {
   bool posicao_valida = false;
-  //enquanto a posicao da nova fruta não for válida, continua gerando
   while (!posicao_valida) {
     frutaX = random(0, MATRIZ_LARGURA);
     frutaY = random(0, MATRIZ_ALTURA);
     posicao_valida = true;
+
     for (int i = 0; i < snake_comprimento; i++) {
       if (snakeX[i] == frutaX && snakeY[i] == frutaY) {
         posicao_valida = false;
         break;
       }
     }
+    for (int i = 0; i < snake2_comprimento; i++) {
+      if (snake2X[i] == frutaX && snake2Y[i] == frutaY) {
+        posicao_valida = false;
+        break;
+      }
+    }
   }
 }
+
+// === DESENHO ===
 void desenhar_pixel(int x, int y, bool estado) {
-  //em qual dos 4 módulos da matriz de LED o pixel deve ser desenhado
-  int modulo = x / 8;
-  //descobre a coluna do módulo que o pixel deve ser desenhado
+  int modulo = 3 - (x / 8);
   int coluna = x % 8;
-  //acende o led na coordenada
   matriz.setLed(modulo, y, coluna, estado);
 }
+
 void desenhar_matriz() {
-  //apaga todos os leds de todos os módulos
   for (int m = 0; m < 4; m++) {
     matriz.clearDisplay(m);
   }
-  //desenha todos os segmentos da cobra
+
   for (int i = 0; i < snake_comprimento; i++) {
     desenhar_pixel(snakeX[i], snakeY[i], true);
   }
-  //desenha a fruta
+  for (int i = 0; i < snake2_comprimento; i++) {
+    desenhar_pixel(snake2X[i], snake2Y[i], true);
+  }
   desenhar_pixel(frutaX, frutaY, true);
 }
-void game_over() {
-  //apaga todos os módulos da matriz
+
+// === GAME OVER ===
+void game_over(int jogador) {
+  tone(BUZZER, 200, 2000);
+  delay(1000);
+  noTone(BUZZER);
+
   for (int m = 0; m < 4; m++) {
     matriz.clearDisplay(m);
   }
-  //espera 3 segundos e seta o comprimento pro inicial
-  delay(3000);
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("P1:");
+  lcd.print(pontosP1);
+  lcd.setCursor(8,0);
+  lcd.print("P2:");
+  lcd.print(pontosP2);
+
+  lcd.setCursor(0,1);
+  if (jogador == 1) {
+    lcd.print("P1 Morreu  P2 Venceu");
+  } else {
+    lcd.print("P2 Morreu  P1 Venceu");
+  }
+
+  delay(4000);
+
+  // Reset jogo
+  pontosP1 = 0;
+  pontosP2 = 0;
   snake_comprimento = snake_comprimento_inicial;
-  //seta as coordenadas da nova cobra inicial novamente
+  snake2_comprimento = snake2_comprimento_inicial;
+
   for (int i = 0; i < snake_comprimento; i++) {
     snakeX[i] = 4 - i;
     snakeY[i] = 3;
   }
-  //coloca a snake para ir para direita
+  for (int i = 0; i < snake2_comprimento; i++) {
+    snake2X[i] = MATRIZ_LARGURA - 5 + i;
+    snake2Y[i] = 4;
+  }
+
   direcao_X = 1;
   direcao_Y = 0;
+  direcao2_X = -1;
+  direcao2_Y = 0;
+
   gerar_fruta();
+  lcd.clear();
 }
