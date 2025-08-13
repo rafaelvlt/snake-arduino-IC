@@ -13,6 +13,14 @@ LedControl matriz = LedControl(MLED_DIN, MLED_CLK, MLED_CS, 4); // 4 módulos 8x
 // === LCD ===
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Endereço comum 0x27
 
+//Botões
+#define botaoEsquerda 2
+#define botaoCentro   3
+#define botaoDireita  4
+// Debounce simples
+bool botaoCentroPressionado = false; 
+// Estado do jogo: 0 = menu, 1 = jogando
+int estado = 0;
 // === BUZZER ===
 #define BUZZER 9
 
@@ -51,7 +59,11 @@ int movimentoDelay = 150;
 int pontosP1 = 0;
 int pontosP2 = 0;
 
+// MENU
+bool menuJaMostrado = false;
+
 void setup() {
+  //Buzzer
   pinMode(BUZZER, OUTPUT);
 
   // Inicializa matriz
@@ -68,44 +80,86 @@ void setup() {
   lcd.setCursor(0,0);
   lcd.print("P1:0   P2:0");
 
+  //Botões
+  pinMode(botaoEsquerda, INPUT_PULLUP);
+  pinMode(botaoCentro,   INPUT_PULLUP);
+  pinMode(botaoDireita,  INPUT_PULLUP);
+
+  // Seed de random
   randomSeed(analogRead(A2));
 
-  // Posiciona Cobra 1
-  for (int i = 0; i < snake_comprimento; i++) {
-    snakeX[i] = 4 - i;
-    snakeY[i] = 3;
-  }
+  // Prepara variáveis do jogo
+  resetVariaveis();
 
-  // Posiciona Cobra 2 (oposta)
-  for (int i = 0; i < snake2_comprimento; i++) {
-    snake2X[i] = MATRIZ_LARGURA - 5 + i;
-    snake2Y[i] = 4;
-  }
-
-  gerar_fruta();
+  
+  // Menu inicial
+  estado = 0;
+  atualizarMenu();
 }
 
 void loop() {
-  ler_joystick1();
-  ler_joystick2();
+  //Menu
+  if (estado == 0){
+    atualizarMenu();
 
-  if (millis() - ultimoMovimento > movimentoDelay) {
-    ultimoMovimento = millis();
+    if (digitalRead(botaoCentro) == LOW) { 
+      botaoCentroPressionado = true;
+    }
 
-    movimento_snake1();
-    movimento_snake2();
+    if (digitalRead(botaoCentro) == HIGH && botaoCentroPressionado) {
+      botaoCentroPressionado = false; 
+      iniciarSnake();                
+    }
+  }
 
-    desenhar_matriz();
+  //Jogo
+  else if (estado == 1){
+    ler_joystick1();
+    ler_joystick2();
 
-    // Atualiza pontuação no LCD
-    lcd.setCursor(0,0);
-    lcd.print("P1:");
-    lcd.print(pontosP1);
-    lcd.setCursor(8,0);
-    lcd.print("P2:");
-    lcd.print(pontosP2);
+    if (millis() - ultimoMovimento > movimentoDelay) {
+      ultimoMovimento = millis();
+
+      movimento_snake1();
+      movimento_snake2();
+
+      desenhar_matriz();
+    }
   }
 }
+
+void atualizarMenu() {
+  if (estado == 0 && !menuJaMostrado) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Jogar Snake");
+    lcd.setCursor(0, 1);
+    lcd.print("Press. Centro");
+    menuJaMostrado = true;
+  }
+}
+
+void iniciarSnake() {
+  menuJaMostrado = false;
+  
+  // reset visual
+  for (int m = 0; m < 4; m++) matriz.clearDisplay(m);
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Iniciando...");
+  delay(500);
+  lcd.clear();
+  lcd.print("P1:0     P2:0");
+  
+  // reset estado
+  estado = 1;
+}
+
+/*void mostrarPlacar(long pontos) {
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Game Over!");
+  lcd.setCursor(0, 1); lcd.print("Pts: "); lcd.print(pontos);
+  delay(2000);
+} */
 
 // === LEITURA JOYSTICK P1 ===
 void ler_joystick1() {
@@ -176,6 +230,11 @@ void movimento_snake1() {
   if (novo_X == frutaX && novo_Y == frutaY) {
     tone(BUZZER, 1000, 100);
     pontosP1++;
+
+    //pontuacao
+    lcd.setCursor(3, 0); 
+    lcd.print(pontosP1); 
+
     if (snake_comprimento < TAMANHO_MAXIMO) snake_comprimento++;
     gerar_fruta();
   }
@@ -214,6 +273,10 @@ void movimento_snake2() {
   if (novo_X == frutaX && novo_Y == frutaY) {
     tone(BUZZER, 1200, 100);
     pontosP2++;
+
+    lcd.setCursor(11, 0); 
+    lcd.print(pontosP2);  
+
     if (snake2_comprimento < TAMANHO_MAXIMO) snake2_comprimento++;
     gerar_fruta();
   }
@@ -265,6 +328,11 @@ void desenhar_matriz() {
 
 // === GAME OVER ===
 void game_over(int jogador) {
+  menuJaMostrado = false;
+  estado = 2;
+  estado = 2;
+
+  //som de derrota
   tone(BUZZER, 200, 2000);
   delay(1000);
   noTone(BUZZER);
@@ -283,23 +351,28 @@ void game_over(int jogador) {
 
   lcd.setCursor(0,1);
   if (jogador == 1) {
-    lcd.print("P1 Morreu  P2 Venceu");
+    lcd.print("P2 Venceu!");
   } else {
-    lcd.print("P2 Morreu  P1 Venceu");
+    lcd.print("P1 Venceu!");
   }
-
   delay(4000);
+  resetVariaveis();
+  estado = 0;
+  atualizarMenu();
+}
 
-  // Reset jogo
+void resetVariaveis() {
   pontosP1 = 0;
   pontosP2 = 0;
   snake_comprimento = snake_comprimento_inicial;
   snake2_comprimento = snake2_comprimento_inicial;
 
+  // Posiciona Cobra 1
   for (int i = 0; i < snake_comprimento; i++) {
     snakeX[i] = 4 - i;
     snakeY[i] = 3;
   }
+  // Posiciona Cobra 2
   for (int i = 0; i < snake2_comprimento; i++) {
     snake2X[i] = MATRIZ_LARGURA - 5 + i;
     snake2Y[i] = 4;
@@ -311,5 +384,4 @@ void game_over(int jogador) {
   direcao2_Y = 0;
 
   gerar_fruta();
-  lcd.clear();
 }
