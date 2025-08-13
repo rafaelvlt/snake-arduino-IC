@@ -592,6 +592,8 @@ void inserirIniciais(int posicao, int pontuacao, int jogador) {
       }
     }
   }
+  lcd.setCursor(5, 1); 
+  lcd.print(iniciais);
 
   adicionarNovoRecorde(pontuacao, iniciais, posicao);
   salvarRecordes();
