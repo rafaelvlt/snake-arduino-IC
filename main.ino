@@ -62,6 +62,17 @@ int pontosP2 = 0;
 // MENU
 bool menuJaMostrado = false;
 
+//NOTAS MUSICAIS (FREQUÊNCIAS EM HZ)
+#define NOTA_DO4  262  // Dó 4 oitava
+#define NOTA_RE4  294  // Ré 4 oitava
+#define NOTA_MI4  330  // Mi 4 oitava
+#define NOTA_FA4  349  // Fá 4 oitava
+#define NOTA_SOL4 392  // Sol 4 oitava
+#define NOTA_LA4  440  // Lá 4 oitava
+#define NOTA_SI4  494  // Si 4 oitava
+#define NOTA_DO5  523  // Dó 5 oitava
+#define NOTA_SOL5 784  // Sol 5 oitava
+
 void setup() {
   //Buzzer
   pinMode(BUZZER, OUTPUT);
@@ -141,7 +152,7 @@ void atualizarMenu() {
 
 void iniciarSnake() {
   menuJaMostrado = false;
-  
+  som_iniciarJogo();
   // reset visual
   for (int m = 0; m < 4; m++) matriz.clearDisplay(m);
   lcd.clear();
@@ -207,14 +218,20 @@ void movimento_snake1() {
   if (novo_Y < 0) novo_Y = MATRIZ_ALTURA - 1;
   else if (novo_Y >= MATRIZ_ALTURA) novo_Y = 0;
 
+  //verifica colisão com próprio corpo
   for (int i = 0; i < snake_comprimento; i++) {
     if (snakeX[i] == novo_X && snakeY[i] == novo_Y) {
+      som_colisao();
+      delay(750);
       game_over(1);
       return;
     }
   }
+  //verifica colisão com inimigo
   for (int i = 0; i < snake2_comprimento; i++) {
     if (snake2X[i] == novo_X && snake2Y[i] == novo_Y) {
+      som_colisao();
+      delay(750);
       game_over(1);
       return;
     }
@@ -228,7 +245,7 @@ void movimento_snake1() {
   snakeY[0] = novo_Y;
 
   if (novo_X == frutaX && novo_Y == frutaY) {
-    tone(BUZZER, 1000, 100);
+    som_comerFruta();
     pontosP1++;
 
     //pontuacao
@@ -250,14 +267,20 @@ void movimento_snake2() {
   if (novo_Y < 0) novo_Y = MATRIZ_ALTURA - 1;
   else if (novo_Y >= MATRIZ_ALTURA) novo_Y = 0;
 
+  //verifica colisão com próprio corpo
   for (int i = 0; i < snake2_comprimento; i++) {
     if (snake2X[i] == novo_X && snake2Y[i] == novo_Y) {
+      som_colisao();
+      delay(750);
       game_over(2);
       return;
     }
   }
+  //verifica colisão com inimigo
   for (int i = 0; i < snake_comprimento; i++) {
     if (snakeX[i] == novo_X && snakeY[i] == novo_Y) {
+      som_colisao();
+      delay(750);
       game_over(2);
       return;
     }
@@ -271,7 +294,7 @@ void movimento_snake2() {
   snake2Y[0] = novo_Y;
 
   if (novo_X == frutaX && novo_Y == frutaY) {
-    tone(BUZZER, 1200, 100);
+    som_comerFruta();
     pontosP2++;
 
     lcd.setCursor(11, 0); 
@@ -330,12 +353,7 @@ void desenhar_matriz() {
 void game_over(int jogador) {
   menuJaMostrado = false;
   estado = 2;
-  estado = 2;
-
-  //som de derrota
-  tone(BUZZER, 200, 2000);
-  delay(1000);
-  noTone(BUZZER);
+  som_gameOver();
 
   for (int m = 0; m < 4; m++) {
     matriz.clearDisplay(m);
@@ -384,4 +402,32 @@ void resetVariaveis() {
   direcao2_Y = 0;
 
   gerar_fruta();
+}
+
+void som_iniciarJogo() {
+  tone(BUZZER, NOTA_LA4, 100);
+  delay(120);
+  tone(BUZZER, NOTA_LA4, 100);
+  delay(120);
+  tone(BUZZER, NOTA_DO5, 200);
+}
+
+void som_comerFruta() {
+  tone(BUZZER, NOTA_DO5, 50); 
+  delay(55); 
+  tone(BUZZER, NOTA_SOL5, 60); 
+}
+
+void som_colisao() {
+  tone(BUZZER, NOTA_DO4, 70);
+  delay(80);                    
+  tone(BUZZER, NOTA_DO4, 150); 
+}
+
+void som_gameOver() {
+  tone(BUZZER, NOTA_SOL4, 250);
+  delay(275);
+  tone(BUZZER, NOTA_FA4, 250);
+  delay(275);
+  tone(BUZZER, NOTA_RE4, 300);
 }
