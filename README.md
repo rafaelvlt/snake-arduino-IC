@@ -107,6 +107,8 @@ Este projeto foi idealizado e construído por:
 -   [Eric Santiago](https://github.com/ARISE21)
 -   [Nina Schettini](https://github.com/schettinina)
 -   [Heitor Luiz](https://github.com/heitorlui-z)
+-   [João Aquino](https://github.com/JoaoAquino117)
+-   [Gabriel Zarour]()
 ---
 
 ## Licença
