@@ -1,5 +1,6 @@
 #include <LedControl.h>
 #include <LiquidCrystal_I2C.h>
+#include <EEPROM.h>
 
 // === MATRIZ DE LED ===
 #define MLED_DIN 51
@@ -17,10 +18,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2); // Endereço comum 0x27
 #define botaoEsquerda 2
 #define botaoCentro   3
 #define botaoDireita  4
-// Debounce simples
-bool botaoCentroPressionado = false; 
-// Estado do jogo: 0 = menu, 1 = jogando
-int estado = 0;
+
 // === BUZZER ===
 #define BUZZER 9
 
@@ -60,7 +58,14 @@ int pontosP1 = 0;
 int pontosP2 = 0;
 
 // MENU
+int estado = 0; // 0 = menu, 1 = jogando, 2 = tela de espera (game over/recordes)
+int opcaoMenu = 0;
+const int totalOpcoesMenu = 2;
 bool menuJaMostrado = false;
+
+// Debounce
+unsigned long ultimoApertoBotao = 0;
+const long debounceDelay = 200; 
 
 //NOTAS MUSICAIS (FREQUÊNCIAS EM HZ)
 #define NOTA_DO4  262  // Dó 4 oitava
@@ -72,6 +77,17 @@ bool menuJaMostrado = false;
 #define NOTA_SI4  494  // Si 4 oitava
 #define NOTA_DO5  523  // Dó 5 oitava
 #define NOTA_SOL5 784  // Sol 5 oitava
+
+//LÓGICA DE RECORDES
+struct Recorde {
+  char iniciais[5];
+  int pontuacao;
+};
+
+#define NUMERO_DE_RECORDES 5
+Recorde topPontuacoes[NUMERO_DE_RECORDES];
+
+#define ENDERECO_EEPROM 0
 
 void setup() {
   //Buzzer
@@ -98,6 +114,9 @@ void setup() {
 
   // Seed de random
   randomSeed(analogRead(A2));
+  
+   // Recordes
+  carregarRecordes();
 
   // Prepara variáveis do jogo
   resetVariaveis();
@@ -105,22 +124,13 @@ void setup() {
   
   // Menu inicial
   estado = 0;
-  atualizarMenu();
+
 }
 
 void loop() {
   //Menu
   if (estado == 0){
-    atualizarMenu();
-
-    if (digitalRead(botaoCentro) == LOW) { 
-      botaoCentroPressionado = true;
-    }
-
-    if (digitalRead(botaoCentro) == HIGH && botaoCentroPressionado) {
-      botaoCentroPressionado = false; 
-      iniciarSnake();                
-    }
+    gerenciarMenu();
   }
 
   //Jogo
@@ -140,13 +150,60 @@ void loop() {
 }
 
 void atualizarMenu() {
-  if (estado == 0 && !menuJaMostrado) {
-    lcd.clear();
+  lcd.clear();
+  
+
+  if (opcaoMenu == 0) { 
     lcd.setCursor(0, 0);
-    lcd.print("Jogar Snake");
+    lcd.print(">");
+    lcd.setCursor(1, 0);
+    lcd.print("Iniciar Jogo");
+    lcd.setCursor(1, 1);
+    lcd.print("Recordes");
+  } else if (opcaoMenu == 1) { 
+    lcd.setCursor(1, 0);
+    lcd.print("Iniciar Jogo");
     lcd.setCursor(0, 1);
-    lcd.print("Press. Centro");
+    lcd.print(">");
+    lcd.setCursor(1, 1);
+    lcd.print("Recordes");
+  }
+}
+void gerenciarMenu() {
+  if (!menuJaMostrado) {
+    atualizarMenu();
     menuJaMostrado = true;
+  }
+
+
+  if (millis() - ultimoApertoBotao > debounceDelay) {
+    if (digitalRead(botaoDireita) == LOW) {
+      ultimoApertoBotao = millis(); 
+      opcaoMenu++;
+      if (opcaoMenu >= totalOpcoesMenu) opcaoMenu = 0;
+      menuJaMostrado = false;
+      tone(BUZZER, NOTA_LA4, 50);
+    }
+    // --- Lê o botão da Esquerda ---
+    else if (digitalRead(botaoEsquerda) == LOW) {
+      ultimoApertoBotao = millis();
+      opcaoMenu--;
+      if (opcaoMenu < 0) opcaoMenu = totalOpcoesMenu - 1;
+      menuJaMostrado = false;
+      tone(BUZZER, NOTA_LA4, 50);
+    }
+
+    else if (digitalRead(botaoCentro) == LOW) {
+      ultimoApertoBotao = millis();
+      switch (opcaoMenu) {
+        case 0:
+          iniciarSnake();
+          break;
+        case 1:
+          mostrarRecordes();
+          break;
+      }
+    }
   }
 }
 
@@ -164,13 +221,6 @@ void iniciarSnake() {
   // reset estado
   estado = 1;
 }
-
-/*void mostrarPlacar(long pontos) {
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print("Game Over!");
-  lcd.setCursor(0, 1); lcd.print("Pts: "); lcd.print(pontos);
-  delay(2000);
-} */
 
 // === LEITURA JOYSTICK P1 ===
 void ler_joystick1() {
@@ -297,7 +347,7 @@ void movimento_snake2() {
     som_comerFruta();
     pontosP2++;
 
-    lcd.setCursor(11, 0); 
+    lcd.setCursor(12, 0); 
     lcd.print(pontosP2);  
 
     if (snake2_comprimento < TAMANHO_MAXIMO) snake2_comprimento++;
@@ -350,7 +400,7 @@ void desenhar_matriz() {
 }
 
 // === GAME OVER ===
-void game_over(int jogador) {
+void game_over(int jogadorQuePerdeu) {
   menuJaMostrado = false;
   estado = 2;
   som_gameOver();
@@ -359,24 +409,38 @@ void game_over(int jogador) {
     matriz.clearDisplay(m);
   }
 
+  // placar final
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("P1:");
   lcd.print(pontosP1);
-  lcd.setCursor(8,0);
+  lcd.setCursor(8, 0);
   lcd.print("P2:");
   lcd.print(pontosP2);
 
-  lcd.setCursor(0,1);
-  if (jogador == 1) {
+  lcd.setCursor(0, 1);
+  if (jogadorQuePerdeu == 1) {
     lcd.print("P2 Venceu!");
   } else {
     lcd.print("P1 Venceu!");
   }
-  delay(4000);
-  resetVariaveis();
-  estado = 0;
-  atualizarMenu();
+
+
+  // pega vencedor e pontuacao
+  int jogadorVencedor = (jogadorQuePerdeu == 1) ? 2 : 1;
+  int pontuacaoVencedor = (jogadorVencedor == 1) ? pontosP1 : pontosP2;
+
+  // verifica se é novo recorde
+  int posicaoNoRanking = verificarNovoRecorde(pontuacaoVencedor);
+
+  // novo recorde
+  if (posicaoNoRanking != -1) {
+    inserirIniciais(posicaoNoRanking, pontuacaoVencedor, jogadorVencedor);
+  } else {
+    delay(4000); 
+    resetVariaveis();
+    estado = 0;
+  }
 }
 
 void resetVariaveis() {
@@ -430,4 +494,131 @@ void som_gameOver() {
   tone(BUZZER, NOTA_FA4, 250);
   delay(275);
   tone(BUZZER, NOTA_RE4, 300);
+}
+
+void salvarRecordes() {
+  EEPROM.put(ENDERECO_EEPROM, topPontuacoes);
+}
+
+// carrega os recordes da EEPROM quando o arduino liga
+void carregarRecordes() {
+  
+  EEPROM.get(ENDERECO_EEPROM, topPontuacoes);
+
+  // caso não haja recordes, limpa a tabela de lixo da memória
+  if (topPontuacoes[0].pontuacao < 0 || topPontuacoes[0].pontuacao > 30000) {
+    for (int i = 0; i < NUMERO_DE_RECORDES; i++) {
+      strcpy(topPontuacoes[i].iniciais, "---");
+      topPontuacoes[i].pontuacao = 0;
+    }
+    salvarRecordes(); //salva a lista zerada para a próxima vez
+  }
+}
+
+int verificarNovoRecorde(int novaPontuacao) {
+  //percorre a lista de recordes do maior para o menor
+  for (int i = 0; i < NUMERO_DE_RECORDES; i++) {
+    if (novaPontuacao > topPontuacoes[i].pontuacao) {
+      return i; //nova pontuacao é maior
+    }
+  }
+  return -1; //a pontuação não foi alta o suficiente.
+}
+
+void adicionarNovoRecorde(int novaPontuacao, char novasIniciais[], int posicao) {
+  //move os recordes antigos uma posição para baixo para abrir espaço
+  for (int i = NUMERO_DE_RECORDES - 1; i > posicao; i--) {
+    topPontuacoes[i] = topPontuacoes[i - 1];
+  }
+
+  //insere o novo recorde na posição correta
+  strcpy(topPontuacoes[posicao].iniciais, novasIniciais);
+  topPontuacoes[posicao].pontuacao = novaPontuacao;
+}
+
+void inserirIniciais(int posicao, int pontuacao, int jogador) {
+  char iniciais[5] = {'A', 'A', 'A', 'A', '\0'};
+  int letraAtual = 0;
+  unsigned long ultimoMovimentoJoy = 0;
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("NOVO RECORDE P");
+  lcd.print(jogador);
+  lcd.print("!");
+
+  while (letraAtual < 4) {
+    lcd.setCursor(5, 1); 
+    lcd.print(iniciais);
+
+    // lógica para fazer a letra atual piscar
+    lcd.setCursor(5 + letraAtual, 1);
+    lcd.print(iniciais[letraAtual]);
+    delay(250);
+    lcd.setCursor(5 + letraAtual, 1);
+    lcd.print(" ");
+    delay(200);
+
+    // lógica de debounce para o joystick
+    if (millis() - ultimoMovimentoJoy > 250) {
+      int joyX = (jogador == 1) ? analogRead(JOY1_X) : analogRead(JOY2_X);
+      int joyY = (jogador == 1) ? analogRead(JOY1_Y) : analogRead(JOY2_Y);
+
+      bool moveu = false;
+      
+     
+      if (joyY > LIMITE_JOYSTICK_ALTO) { 
+        iniciais[letraAtual]--;        
+        moveu = true;
+      }
+      if (joyY < LIMITE_JOYSTICK_BAIXO) { 
+        iniciais[letraAtual]++;         
+        moveu = true;
+      }
+
+      // cicla
+      if (iniciais[letraAtual] > 'Z') iniciais[letraAtual] = 'A';
+      if (iniciais[letraAtual] < 'A') iniciais[letraAtual] = 'Z';
+
+     
+      if (joyX > LIMITE_JOYSTICK_ALTO) { 
+        letraAtual++;                   
+        moveu = true;
+      }
+      
+      if (moveu) {
+        ultimoMovimentoJoy = millis();
+        tone(BUZZER, NOTA_DO5, 30);
+      }
+    }
+  }
+
+  adicionarNovoRecorde(pontuacao, iniciais, posicao);
+  salvarRecordes();
+
+  delay(1000);
+  resetVariaveis();
+  estado = 0;
+  menuJaMostrado = false;
+}
+
+void mostrarRecordes() {
+  estado = 2;
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("-- RECORDES --");
+  
+  for(int i = 0; i < NUMERO_DE_RECORDES; i++) {
+    lcd.setCursor(0,1);
+    lcd.clear(); 
+    lcd.setCursor(0,1);
+    lcd.print(i + 1);
+    lcd.print(". ");
+    lcd.print(topPontuacoes[i].iniciais);
+    lcd.print(" - ");
+    lcd.print(topPontuacoes[i].pontuacao);
+    delay(2000);
+  }
+  estado = 0;
+  menuJaMostrado = false;
 }
