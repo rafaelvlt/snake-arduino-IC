@@ -114,7 +114,7 @@ Este projeto foi idealizado e construído por:
 -   [Nina Schettini](https://github.com/schettinina)
 -   [Heitor Luiz](https://github.com/heitorlui-z)
 -   [João Aquino](https://github.com/JoaoAquino117)
--   [Gabriel Zarour]()
+-   [Gabriel Zarour](https://github.com/GabrieIing)
 ---
 
 ## Licença
